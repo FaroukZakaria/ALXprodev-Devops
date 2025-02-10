@@ -1,0 +1,28 @@
+#!/bin/bash
+
+INPUT_FILE="data.json"
+
+
+# Check if the file exists and is not empty
+if [[ ! -s "$INPUT_FILE" ]]; then
+    echo "Error: $INPUT_FILE does not exist or is empty. Please run the previoustask to fetch the data."
+    exit 1
+fi
+
+# Extract data using jq
+NAME=$(jq -r '.name' "$INPUT_FILE")
+HEIGHT=$(jq -r '.height' "$INPUT_FILE")
+WEIGHT=$(jq -r '.weight' "$INPUT_FILE")
+TYPE=$(jq -r '.types[0].type.name' "$INPUT_FILE")
+
+# Convert height and weight to human-readable format
+# Assume height is in decimeters (dm), so divide by 10 for meters
+# Assume weight is in hectograms (hg), so divide by 10 for kilograms
+HEIGHT_M=$(awk "BEGIN {printf \"%.1f\", $HEIGHT / 10}")
+WEIGHT_KG=$(awk "BEGIN {printf \"%.1f\", $WEIGHT / 10}")
+
+# Format the output
+OUTPUT=$(echo "$NAME is of type $TYPE, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_M}m tall." | sed 's/^./\U&/')
+
+# Print the result
+echo "$OUTPUT"

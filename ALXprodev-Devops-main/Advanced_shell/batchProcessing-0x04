@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# List of Pokémon to retrieve data for
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# API endpoint
+API_URL="https://pokeapi.co/api/v2/pokemon"
+
+# Directory to store Pokémon data
+OUTPUT_DIR="pokemon_data"
+mkdir -p "$OUTPUT_DIR"
+
+# Log file for errors
+ERROR_LOG="errors.log"
+> "$ERROR_LOG"  # Clear the error log at the start
+
+# Maximum number of parallel processes
+MAX_PARALLEL=3
+
+# Timeout for a process (in seconds)
+PROCESS_TIMEOUT=30
+
+# Function to fetch Pokémon data
+fetch_pokemon_data() {
+    local pokemon="$1"
+    local output_file="$OUTPUT_DIR/$pokemon.json"
+
+    echo "Fetching data for $pokemon..."
+    HTTP_STATUS=$(curl -s -o "$output_file" -w "%{http_code}" "$API_URL/$pokemon")
+
+    if [[ "$HTTP_STATUS" -eq 200 ]]; then
+        echo "Data for $pokemon saved to $output_file."
+    else
+        echo "Error: Failed to fetch data for $pokemon. HTTP Status: $HTTP_STATUS" >> "$ERROR_LOG"
+        rm -f "$output_file"  # Remove incomplete file
+    fi
+}
+
+# Main script logic
+echo "Starting parallel Pokémon data retrieval..."
+
+# Function to handle timeout and termination of jobs
+terminate_jobs() {
+    echo "Terminating all running jobs..."
+    jobs -p | xargs kill 2>/dev/null
+}
+
+# Trap SIGINT and SIGTERM to clean up background jobs
+trap "terminate_jobs; exit" SIGINT SIGTERM
+
+# Track running jobs
+running_jobs=0
+
+for POKEMON in "${POKEMON_LIST[@]}"; do
+    # Start fetching data in the background
+    (timeout "$PROCESS_TIMEOUT" fetch_pokemon_data "$POKEMON") &
+
+    # Increment the counter
+    ((running_jobs++))
+
+    # If the limit is reached, wait for jobs to finish
+    if [[ "$running_jobs" -ge "$MAX_PARALLEL" ]]; then
+        wait -n  # Wait for any background job to finish
+        ((running_jobs--))
+    fi
+done
+
+# Wait for all remaining jobs to finish
+wait
+
+echo "Data retrieval complete. Errors, if any, are logged in $ERROR_LOG."
+
