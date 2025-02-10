@@ -21,7 +21,7 @@ FORMATTED_HEIGHT=$(awk "BEGIN {printf \"%.1f\", $HEIGHT / 10}")
 FORMATTED_WEIGHT=$(awk "BEGIN {printf \"%.1f\", $WEIGHT / 10}")
 
 # Format the output
-OUTPUT=$(echo "$NAME is of type $TYPE, weighs ${FORMATTED_WEIGHT}kg, and is ${FORMATTED_HEIGHT}m tall." | sed 's/^./\U&/')
+OUTPUT=$(echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall." | sed 's/^./\U&/')
 
 # Print the result
 echo "$OUTPUT"
